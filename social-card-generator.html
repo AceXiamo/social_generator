@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>社媒卡片生成器 - AceXiamo</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Iconify -->
+  <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+
+  <!-- Snapdom -->
+  <script src="https://unpkg.com/@zumer/snapdom/dist/snapdom.min.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #0a0a0a;
+      min-height: 100vh;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+      width: 100vw !important;
+      max-width: 100vw !important;
+    }
+
+    .controls {
+      position: fixed;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 400px;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 30px 24px;
+      z-index: 100;
+    }
+
+    .controls::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .controls::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .controls::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+    }
+
+    .controls::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .controls h1 {
+      margin-bottom: 20px;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 500;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="url"],
+    .form-group input[type="color"],
+    .form-group input[type="file"],
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      font-size: 13px;
+      color: #fff;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .form-group input[type="color"] {
+      height: 38px;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .form-group input[type="file"] {
+      cursor: pointer;
+      padding: 8px 12px;
+    }
+
+    .form-group input[type="file"]::file-selector-button {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      margin-right: 10px;
+    }
+
+    .form-group input[type="file"]::file-selector-button:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    .color-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .color-group .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    button {
+      width: 100% !important;
+      padding: 10px 16px !important;
+      border: none;
+      border-radius: 8px !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      cursor: pointer !important;
+      transition: all 0.2s !important;
+      letter-spacing: 0.3px !important;
+      background: rgba(255, 255, 255, 0.95) !important;
+      color: #000 !important;
+    }
+
+    button:hover {
+      background: #fff !important;
+      transform: translateY(-1px) !important;
+    }
+
+    button:active {
+      transform: translateY(0) !important;
+    }
+
+    .card-preview {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      margin-right: 400px;
+    }
+
+    .card-preview-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .card-container {
+      position: relative;
+      width: 1200px;
+      height: 675px;
+      background: linear-gradient(135deg, #ff6b9d 0%, #c06c84 100%);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 0;
+    }
+
+    .card-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-size: cover;
+      background-position: center;
+      z-index: 0;
+    }
+
+    .card-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 100%);
+      z-index: 1;
+      backdrop-filter: blur(0px);
+      -webkit-backdrop-filter: blur(0px);
+      transition: backdrop-filter 0.3s ease;
+    }
+
+
+    /* 辅助线系统 */
+    .guide-line {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.15);
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .guide-line.horizontal {
+      height: 1px;
+      left: 0;
+      right: 0;
+    }
+
+    .guide-line.vertical {
+      width: 1px;
+      top: 0;
+      bottom: 0;
+    }
+
+    /* 辅助线交叉点的十字标记 */
+    .guide-cross {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    .guide-cross::before,
+    .guide-cross::after {
+      content: '';
+      position: absolute;
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .guide-cross::before {
+      width: 1px;
+      height: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .guide-cross::after {
+      width: 100%;
+      height: 1px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+
+
+    .scroll-hint {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 12px;
+      text-align: center;
+      margin-top: 16px;
+      letter-spacing: 0.3px;
+    }
+
+    @media (max-width: 1600px) {
+      .card-container {
+        width: 900px;
+        height: 506px;
+      }
+    }
+
+    @media (max-width: 1400px) {
+      .card-container {
+        width: 900px;
+        height: 506px;
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .card-container {
+        width: 800px;
+        height: 450px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="controls">
+      <h1>🎨 Social Card Generator</h1>
+
+      <div class="form-group">
+        <label for="title">标题</label>
+        <textarea id="title" placeholder="输入卡片标题">炒个冷饭聊聊 Vibe Coding 🤨</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="nickname">昵称</label>
+        <input type="text" id="nickname" value="AceXiamo" placeholder="输入你的昵称">
+      </div>
+
+      <div class="form-group">
+        <label for="userSubtitle">用户副标题（可选）</label>
+        <input type="text" id="userSubtitle" placeholder="例如：前端开发者 / 设计师">
+      </div>
+
+      <div class="form-group">
+        <label for="cardSubtitle">卡片副标题（可选）</label>
+        <input type="text" id="cardSubtitle" placeholder="标题下方的副标题">
+      </div>
+
+      <div class="form-group">
+        <label for="avatarFile">头像图片</label>
+        <input type="file" id="avatarFile" accept="image/*">
+      </div>
+
+      <div class="form-group">
+        <label for="avatar">或输入头像 URL</label>
+        <input type="url" id="avatar" value="https://axm.moe/avatar" placeholder="输入头像链接">
+      </div>
+
+      <div class="form-group">
+        <label for="bgImageFile">背景图片</label>
+        <input type="file" id="bgImageFile" accept="image/*">
+      </div>
+
+      <div class="form-group">
+        <label for="bgImage">或输入背景图 URL</label>
+        <input type="url" id="bgImage" placeholder="留空使用渐变色">
+      </div>
+
+      <div class="color-group">
+        <div class="form-group">
+          <label for="bgColor1">渐变色 1</label>
+          <input type="color" id="bgColor1" value="#ff6b9d">
+        </div>
+
+        <div class="form-group">
+          <label for="bgColor2">渐变色 2</label>
+          <input type="color" id="bgColor2" value="#c06c84">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="bgBlur">背景模糊 (0-20px)</label>
+        <input type="range" id="bgBlur" min="0" max="20" value="0"
+          style="width: 100%; cursor: pointer; accent-color: rgba(255, 255, 255, 0.8);"
+          oninput="updateBlurValue(this.value)" onchange="updatePreview()">
+        <div style="text-align: right; font-size: 11px; color: rgba(255, 255, 255, 0.5); margin-top: 4px;">
+          <span id="blurValue">0</span>px
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="customFont">自定义字体 URL（可选）</label>
+        <input type="url" id="customFont" placeholder="例如：https://example.com/font/zzaw.woff2">
+        <div style="font-size: 11px; color: rgba(255, 255, 255, 0.5); margin-top: 4px;">
+          支持 .woff2, .woff, .ttf, .otf 格式的字体文件
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="fontName">字体名称</label>
+        <input type="text" id="fontName" placeholder="例如：MyCustomFont" value="CustomCardFont">
+        <div style="font-size: 11px; color: rgba(255, 255, 255, 0.5); margin-top: 4px;">
+          为字体指定一个名称，用于 @font-face
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>角标列表（可选）</label>
+        <div id="badgeList" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
+          <!-- 角标项会动态添加到这里 -->
+        </div>
+        <button type="button" onclick="addBadge()"
+          style="width: 100%; padding: 8px; background: rgba(255, 255, 255, 0.08); border: 1px dashed rgba(255, 255, 255, 0.2); border-radius: 6px; color: rgba(255, 255, 255, 0.7); font-size: 12px; cursor: pointer;">
+          + 添加角标
+        </button>
+        <div style="font-size: 11px; color: rgba(255, 255, 255, 0.5); margin-top: 8px;">
+          显示在时间左侧，支持图标和文字
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button onclick="updatePreview()">更新预览</button>
+        <button onclick="downloadCard('png')">下载 PNG</button>
+        <button onclick="downloadCard('jpg')">下载 JPG</button>
+      </div>
+    </div>
+
+    <div class="card-preview">
+      <div class="card-preview-inner">
+        <div id="card" class="card-container">
+          <div class="card-bg" id="cardBg"></div>
+          <div class="card-overlay" id="cardOverlay"></div>
+
+          <div class="card-content-wrapper relative z-10 flex flex-col justify-between h-full p-12">
+            <div class="card-header relative inline-flex items-center gap-4 px-5 py-4 border border-white/20"
+              id="cardHeader">
+              <img src="https://axm.moe/avatar" alt="Avatar" class="w-16 h-16 rounded-full object-cover shadow-lg"
+                id="cardAvatar">
+              <div>
+                <h2 class="text-white text-xl font-semibold mb-1 drop-shadow-lg" id="cardNickname"
+                  style="letter-spacing: -0.3px;">AceXiamo</h2>
+                <p class="text-white/95 text-sm drop-shadow-md" id="cardUserSubtitle" style="letter-spacing: 0.2px;">
+                </p>
+              </div>
+            </div>
+
+            <div class="flex-1 flex items-center justify-center py-16">
+              <div class="text-center max-w-4xl">
+                <h1 class="text-white text-5xl font-bold leading-tight drop-shadow-2xl" id="cardTitle"
+                  style="letter-spacing: -1px;">炒个冷饭聊聊 Vibe Coding 🤨</h1>
+                <p class="text-white/85 text-xl mt-4 leading-relaxed drop-shadow-lg" id="cardSubtitleText"
+                  style="letter-spacing: 0.3px;"></p>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center px-6">
+              <div class="flex items-center gap-3" id="cardBadgeContainer">
+                <!-- 角标会动态添加到这里 -->
+              </div>
+              <span class="text-white/95 text-sm drop-shadow-md" id="cardDate" style="letter-spacing: 0.3px;"></span>
+            </div>
+          </div>
+        </div>
+        <p class="scroll-hint">调整配置后点击"更新预览"查看效果</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 角标数据
+    let badges = [];
+    let badgeIdCounter = 0;
+
+    // 添加角标
+    function addBadge() {
+      const id = badgeIdCounter++;
+      badges.push({ id, text: '', icon: '' });
+      renderBadgeList();
+    }
+
+    // 删除角标
+    function removeBadge(id) {
+      badges = badges.filter(b => b.id !== id);
+      renderBadgeList();
+      updatePreview();
+    }
+
+    // 更新角标数据
+    function updateBadgeData(id, field, value) {
+      const badge = badges.find(b => b.id === id);
+      if (badge) {
+        badge[field] = value;
+      }
+    }
+
+    // 渲染角标列表
+    function renderBadgeList() {
+      const container = document.getElementById('badgeList');
+      container.innerHTML = '';
+
+      badges.forEach(badge => {
+        const item = document.createElement('div');
+        item.style.cssText = 'display: flex; flex-direction: column; gap: 6px; padding: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;';
+
+        item.innerHTML = `
+           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+             <span style="color: rgba(255, 255, 255, 0.6); font-size: 11px;">角标 #${badge.id + 1}</span>
+             <button type="button" onclick="removeBadge(${badge.id})" style="background: none; border: none; color: rgba(255, 255, 255, 0.5); cursor: pointer; padding: 2px 6px; font-size: 16px;">×</button>
+           </div>
+           <input type="text" placeholder="文字" value="${badge.text}" 
+                  oninput="updateBadgeData(${badge.id}, 'text', this.value); updatePreview();"
+                  style="width: 100%; padding: 8px 10px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; color: #fff;">
+           <input type="url" placeholder="图标 URL（可选）" value="${badge.icon}"
+                  oninput="updateBadgeData(${badge.id}, 'icon', this.value); updatePreview();"
+                  style="width: 100%; padding: 8px 10px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; color: #fff;">
+         `;
+
+        container.appendChild(item);
+      });
+    }
+
+    // 更新模糊值显示
+    function updateBlurValue(value) {
+      document.getElementById('blurValue').textContent = value;
+    }
+
+    // 加载自定义字体
+    function loadCustomFont(fontUrl, fontName, cardContainer) {
+      // 移除旧的字体
+      const oldStyle = document.getElementById('customFontStyle');
+      if (oldStyle) {
+        oldStyle.remove();
+      }
+
+      if (fontUrl && fontUrl.trim() !== '' && fontName && fontName.trim() !== '') {
+        // 判断字体格式
+        let format = 'woff2';
+        if (fontUrl.endsWith('.woff')) format = 'woff';
+        else if (fontUrl.endsWith('.ttf')) format = 'truetype';
+        else if (fontUrl.endsWith('.otf')) format = 'opentype';
+
+        // 创建 @font-face 规则
+        const newCss = `
+           @font-face {
+             font-family: '${fontName}';
+             font-style: normal;
+             font-weight: 400;
+             src: url('${fontUrl}') format('${format}');
+           }
+           
+           #card.custom-font-applied,
+           #card.custom-font-applied * {
+             font-family: '${fontName}', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+           }
+         `;
+
+        const style = document.createElement('style');
+        style.id = 'customFontStyle';
+        style.textContent = newCss;
+        document.head.appendChild(style);
+
+        console.log('字体已加载:', fontName, '格式:', format);
+        return fontName;
+      } else if (cardContainer) {
+        // 清空字体
+        cardContainer.classList.remove('custom-font-applied');
+      }
+      return null;
+    }
+
+    // Initialize date
+    function updateDate() {
+      const now = new Date();
+      const options = { year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('cardDate').textContent = now.toLocaleDateString('zh-CN', options);
+    }
+
+    // 创建辅助线系统
+    function createGuideLines() {
+      const card = document.getElementById('card');
+      const cardHeader = document.getElementById('cardHeader');
+
+      // 清除旧的辅助线
+      const oldGuides = card.querySelectorAll('.guide-line, .guide-cross');
+      oldGuides.forEach(guide => guide.remove());
+
+      // 获取 header 的位置
+      const headerRect = cardHeader.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+
+      const headerTop = headerRect.top - cardRect.top;
+      const headerBottom = headerRect.bottom - cardRect.top;
+      const headerLeft = headerRect.left - cardRect.left;
+      const headerRight = headerRect.right - cardRect.left;
+
+      // 创建水平辅助线（上边和下边）
+      const topLine = document.createElement('div');
+      topLine.className = 'guide-line horizontal';
+      topLine.style.top = headerTop + 'px';
+      card.appendChild(topLine);
+
+      const bottomLine = document.createElement('div');
+      bottomLine.className = 'guide-line horizontal';
+      bottomLine.style.top = headerBottom + 'px';
+      card.appendChild(bottomLine);
+
+      // 创建垂直辅助线（左边和右边）
+      const leftLine = document.createElement('div');
+      leftLine.className = 'guide-line vertical';
+      leftLine.style.left = headerLeft + 'px';
+      card.appendChild(leftLine);
+
+      const rightLine = document.createElement('div');
+      rightLine.className = 'guide-line vertical';
+      rightLine.style.left = headerRight + 'px';
+      card.appendChild(rightLine);
+
+      // 创建四个角的十字标记
+      const crosses = [
+        { top: headerTop, left: headerLeft },
+        { top: headerTop, left: headerRight },
+        { top: headerBottom, left: headerLeft },
+        { top: headerBottom, left: headerRight }
+      ];
+
+      crosses.forEach(pos => {
+        const cross = document.createElement('div');
+        cross.className = 'guide-cross';
+        cross.style.top = (pos.top - 6) + 'px';
+        cross.style.left = (pos.left - 6) + 'px';
+        card.appendChild(cross);
+      });
+    }
+
+    // Update preview
+    function updatePreview() {
+      const title = document.getElementById('title').value;
+      const nickname = document.getElementById('nickname').value;
+      const avatar = document.getElementById('avatar').value;
+      const userSubtitle = document.getElementById('userSubtitle').value;
+      const cardSubtitle = document.getElementById('cardSubtitle').value;
+      const bgImage = document.getElementById('bgImage').value;
+      const bgColor1 = document.getElementById('bgColor1').value;
+      const bgColor2 = document.getElementById('bgColor2').value;
+      const bgBlur = document.getElementById('bgBlur').value;
+      const customFont = document.getElementById('customFont').value;
+
+      // Update text content
+      document.getElementById('cardTitle').textContent = title;
+      document.getElementById('cardNickname').textContent = nickname;
+      document.getElementById('cardUserSubtitle').textContent = userSubtitle;
+      document.getElementById('cardSubtitleText').textContent = cardSubtitle;
+
+      // 只在有 URL 时更新头像
+      if (avatar && avatar.trim() !== '') {
+        document.getElementById('cardAvatar').src = avatar;
+      }
+
+      // 更新角标
+      const cardBadgeContainer = document.getElementById('cardBadgeContainer');
+      cardBadgeContainer.innerHTML = '';
+
+      badges.forEach(badge => {
+        if (badge.text && badge.text.trim() !== '') {
+          const badgeEl = document.createElement('div');
+          badgeEl.className = 'flex items-center gap-2';
+
+          let html = '';
+          if (badge.icon && badge.icon.trim() !== '') {
+            html += `<img src="${badge.icon}" alt="" class="w-4 h-4 object-contain">`;
+          }
+          html += `<span class="text-white/90 text-xs drop-shadow-md" style="letter-spacing: 0.3px;">${badge.text}</span>`;
+
+          badgeEl.innerHTML = html;
+          cardBadgeContainer.appendChild(badgeEl);
+        }
+      });
+
+      const cardBg = document.getElementById('cardBg');
+      const cardOverlay = document.getElementById('cardOverlay');
+
+      if (bgImage && bgImage.trim() !== '') {
+        // 使用背景图
+        cardBg.style.backgroundImage = `url(${bgImage})`;
+        cardOverlay.style.display = 'block';
+      } else {
+        // 使用渐变色
+        cardBg.style.backgroundImage = `linear-gradient(135deg, ${bgColor1} 0%, ${bgColor2} 100%)`;
+        cardOverlay.style.display = 'none';
+      }
+
+      // 应用背景模糊
+      cardOverlay.style.backdropFilter = `blur(${bgBlur}px)`;
+      cardOverlay.style.webkitBackdropFilter = `blur(${bgBlur}px)`;
+
+      // 加载自定义字体
+      const cardContainer = document.getElementById('card');
+      const fontName = document.getElementById('fontName').value;
+
+      if (customFont && customFont.trim() !== '' && fontName && fontName.trim() !== '') {
+        const result = loadCustomFont(customFont, fontName, cardContainer);
+        if (result) {
+          cardContainer.classList.add('custom-font-applied');
+          console.log('字体应用成功:', result);
+        }
+      } else {
+        cardContainer.classList.remove('custom-font-applied');
+        console.log('已恢复默认字体');
+      }
+
+      // 延迟创建辅助线，确保 DOM 已更新
+      setTimeout(createGuideLines, 10);
+    }
+
+    // Download card
+    async function downloadCard(format) {
+      const card = document.getElementById('card');
+
+      try {
+        const result = await snapdom(card);
+        await result.download({
+          format: format,
+          filename: `acexiamo-card-${Date.now()}`
+        });
+      } catch (error) {
+        console.error('下载失败:', error);
+        alert('下载失败，请检查控制台错误信息');
+      }
+    }
+
+    // 处理头像文件上传
+    document.getElementById('avatarFile').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          document.getElementById('avatar').value = '';
+          document.getElementById('cardAvatar').src = event.target.result;
+          setTimeout(createGuideLines, 10);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // 处理背景图文件上传
+    document.getElementById('bgImageFile').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          document.getElementById('bgImage').value = '';
+          const cardBg = document.getElementById('cardBg');
+          const cardOverlay = document.getElementById('cardOverlay');
+          cardBg.style.backgroundImage = `url(${event.target.result})`;
+          cardOverlay.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Initialize
+    updateDate();
+    updatePreview();
+
+    // 窗口大小改变时重新创建辅助线
+    window.addEventListener('resize', createGuideLines);
+  </script>
+</body>
+
+</html>
